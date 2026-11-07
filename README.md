@@ -16,7 +16,7 @@ condition, effect membuat `AbortController` dan fungsi cleanup memanggil
 `abort()`, sehingga request yang masih berjalan dibatalkan saat komponen hilang
 atau effect berjalan ulang.
 
-#### 2. Struktur Folder
+### 2. Struktur Folder
 ```
 src/
   components/   
