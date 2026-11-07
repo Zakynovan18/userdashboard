@@ -1,24 +1,16 @@
-import { useDeferredValue, useMemo } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useUsers } from '../hooks/useUsers';
+import type { User } from '../types/user';
 import Spinner from '../components/Spinner';
 import ErrorMessage from '../components/ErrorMessage';
+import SearchBar from '../components/SearchBar';
 import UserCard from '../components/UserCard';
-import Pagination from '../components/Pagination';
+import UserModal from '../components/UserModal';
 
-const PAGE_SIZE = 6;
-
-interface HomePageProps {
-  query: string;
-  page: number;
-  onPageChange: (page: number) => void;
-}
-
-export default function HomePage({
-  query,
-  page,
-  onPageChange,
-}: HomePageProps) {
+export default function HomePage() {
   const { users, loading, error, reload } = useUsers();
+  const [query, setQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const deferredQuery = useDeferredValue(query);
   const isStale = query !== deferredQuery;
@@ -32,22 +24,26 @@ export default function HomePage({
     );
   }, [users, deferredQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages - 1);
-  const visibleUsers = filteredUsers.slice(
-    currentPage * PAGE_SIZE,
-    (currentPage + 1) * PAGE_SIZE,
-  );
+  const handleClose = useCallback(() => setSelectedUser(null), []);
 
   const showContent = !loading && !error;
 
   return (
     <>
-      {showContent && (
-        <p className="text-base font-medium text-slate-800">
-          Menampilkan {visibleUsers.length} dari {filteredUsers.length} pengguna
-        </p>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SearchBar value={query} onChange={setQuery} />
+
+        {showContent && (
+          <p className="text-base text-slate-700">
+            Menampilkan{' '}
+            <span className="font-bold text-blue-700">
+              {filteredUsers.length}
+            </span>{' '}
+            dari <span className="font-bold text-blue-700">{users.length}</span>{' '}
+            pengguna
+          </p>
+        )}
+      </div>
 
       {loading && <Spinner />}
 
@@ -64,23 +60,17 @@ export default function HomePage({
       )}
 
       {showContent && filteredUsers.length > 0 && (
-        <>
-          <div
-            className={`mt-4 grid gap-6 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${isStale ? 'opacity-60' : 'opacity-100'
-              }`}
-          >
-            {visibleUsers.map((user) => (
-              <UserCard key={user.id} user={user} />
-            ))}
-          </div>
-
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            onChange={onPageChange}
-          />
-        </>
+        <div
+          className={`mt-6 grid gap-x-6 gap-y-8 transition-opacity sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${isStale ? 'opacity-60' : 'opacity-100'
+            }`}
+        >
+          {filteredUsers.map((user) => (
+            <UserCard key={user.id} user={user} onSelect={setSelectedUser} />
+          ))}
+        </div>
       )}
+
+      {selectedUser && <UserModal user={selectedUser} onClose={handleClose} />}
     </>
   );
 }

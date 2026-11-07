@@ -1,75 +1,35 @@
-# React + TypeScript + Vite
+Single Page Application (SPA untuk mencari daftar pengguna dengan menggunakan API URL dari ) [JSONPlaceholder](https://jsonplaceholder.typicode.com/users)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Deploy:** <https://userdashboard-sable.vercel.app/>
 
-Currently, two official plugins are available:
+## Tech Stack
+React, TypeScript, Vite, Tailwind CSS v4, Lucide React, Fontsource (Krub)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Pemahaman 
+### 1. State Management & Lifecycle
+Untuk fetching datanya diambil dalam custom hook useUsers memakai useEffect, kemudian hook memanggil getUsers di Services/userService.ts. Hook menyimpan empat state: users, loading (awalnya true), error, dan attempt. 
+ Untuk mencegah
+infinite loop, dependency array saya `[attempt]`: effect hanya berjalan saat
+komponen pertama kali muncul dan saat tombol "Coba lagi" menaikkan `attempt`,
+bukan dari dalam effect itu sendiri. Untuk mencegah memory leak dan race
+condition, effect membuat `AbortController` dan fungsi cleanup memanggil
+`abort()`, sehingga request yang masih berjalan dibatalkan saat komponen hilang
+atau effect berjalan ulang.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+#### 2. Struktur Folder
 ```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+src/
+  components/   
+  hooks/        
+  services/     
+  types/        
+  pages/        
 ```
+Saya menggunakan pemisahan kode berdasarkan tanggungjawab masing - masing. Di folder `components` untuk tampilan, `hooks` untuk logic state dan fetching, `services` untuk intrgrasi dengan API, `types` untuk membentuk data, dan `pages` untuk halaman yang membuat rangkain semuanya. Pemisahan ini membuat tiap bagian mudah dipahami, diganti,
+dan diuji sendiri. Untuk aplikasi sekecil/sederhana seperti ini struktur berdasarkan jenis file harusnya sudah cukup, dan jika fitur bertambah saya akan
+pindahkan ke struktur per fitur. 
+
+### 3. Optimasi Kinerja
+Pada saat saya coba simulasi 10000 data, saya tes dengan coba mengetik dan kemudian menghapus per huruf di search bar kerasa sedikit berat karena per ketikan merender ulang kartu sebanyak itu. Jadi opsi nya saya memakai `useDeferredValue` pada kata kunci. sehingga input tetap responsif sementara daftar menyusul dengan prioritas lebih
+rendah. Hasil penyaringan dibungkus `useMemo` agar tidak dihitung ulang kecuali data atau kata kunci berubah, dan `UserCard` dibungkus `React.memo` agar cuma
+merender ulang saat props nya berubah. `memo` efektif karena `onSelect`nadalah setter state yang identitasnya stabil.
